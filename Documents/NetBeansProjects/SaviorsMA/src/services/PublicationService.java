@@ -1,4 +1,10 @@
-package services;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package Services;
+
 
 import com.codename1.io.CharArrayReader;
 import com.codename1.io.ConnectionRequest;
@@ -8,9 +14,11 @@ import com.codename1.io.NetworkManager;
 import java.util.List;
 import com.codename1.ui.events.ActionListener;
 import connexion.Statics;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import models.CommentairePub;
 import models.Publication;
 
 /**
@@ -19,6 +27,7 @@ import models.Publication;
  */
 public class PublicationService {
     public ArrayList<Publication> publication;
+    public ArrayList<CommentairePub> comment;
     
      public static PublicationService instance = null;
     public boolean resultOK;
@@ -114,5 +123,55 @@ public class PublicationService {
 
         
          NetworkManager.getInstance().addToQueue(con);
+    }
+        public boolean addComment(CommentairePub c) {
+        String url = Statics.BASE_URLPub + "Addcomments?description=" + c.getDescription()  +"&publication=" +c.getPublication_id() ;
+        req.setUrl(url);
+        req.addResponseListener(new ActionListener<NetworkEvent>() {
+            @Override
+            public void actionPerformed(NetworkEvent evt) {
+                resultOK = req.getResponseCode() == 200; //Code HTTP 200 OK
+                req.removeResponseListener(this);
+            }
+        });
+        NetworkManager.getInstance().addToQueueAndWait(req);
+        return resultOK;
+    }
+ 
+public ArrayList<CommentairePub> parseComments(String jsonText) {
+        try {
+            comment = new ArrayList<>();
+            JSONParser jp = new JSONParser();
+            Map<String, Object> tasksListJson = jp.parseJSON(new CharArrayReader(jsonText.toCharArray()));
+
+            List<Map<String, Object>> list = (List<Map<String, Object>>) tasksListJson.get("root");
+            for (Map<String, Object> obj : list) {
+                String contenuCom = obj.get("description").toString();
+                String nomPubCom = obj.get("titre").toString();
+                CommentairePub comCol = new CommentairePub();
+                comCol.setDescription(contenuCom);
+                comCol.setPublication_id(nomPubCom);
+                comment.add(comCol);
+            }
+
+        } catch (IOException ex) {
+        }
+
+        return comment;
+    }
+public ArrayList<CommentairePub> getAllCommentsCols() {
+        String url = Statics.BASE_URLPub + "readcomments";
+        req.setUrl(url);
+        req.setPost(false);
+        req.addResponseListener(new ActionListener<NetworkEvent>() {
+            @Override
+            public void actionPerformed(NetworkEvent evt) {
+                comment = parseComments(new String(req.getResponseData()));
+                req.removeResponseListener(this);
+            }
+        });
+        NetworkManager.getInstance().addToQueueAndWait(req);
+
+        return comment;
     }
 } 

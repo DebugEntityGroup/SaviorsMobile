@@ -79,8 +79,7 @@ public class signupForm extends Form {
         signup.addActionListener((evt) -> {
             if ((username.getText().length() == 0) || (email.getText().length() == 0) || (password.getText().length() == 0) || (confirmPassword.getText().length() == 0)) {
                 Dialog.show("Alert", "Champs Requis", "OK", null);
-            }
-            if (!validator.isValid()) {
+            } else if (!validator.isValid()) {
                 ToastBar.showErrorMessage("Veuillez saisir une adresse email valide !");
             } else {
                 if (!password.getText().equals(confirmPassword.getText())) {

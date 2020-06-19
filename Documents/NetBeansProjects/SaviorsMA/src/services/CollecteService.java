@@ -390,6 +390,7 @@ public class CollecteService {
                 int fondAtteintCollecte = (int) Float.parseFloat(obj.get("nombreAtteint").toString());
                 int user_id = (int) Float.parseFloat(obj.get("id").toString());
                 int nbreParticipantsCollecte = (int) Float.parseFloat(obj.get("nombreParticipantsCollecte").toString());
+                String username = obj.get("username").toString();
                 Collecte c = new Collecte();
                 c.setUser_id(user_id);
                 c.setNomCollecte(nomCollecte);
@@ -400,6 +401,7 @@ public class CollecteService {
                 c.setNbreAtteint(fondAtteintCollecte);
                 c.setDescriptionCollecte(descriptionCollecte);
                 c.setNbreParticipantsC(nbreParticipantsCollecte);
+                c.setUsername(username);
                 //c.setUser_id(userID);
                 cols.add(c);
             }

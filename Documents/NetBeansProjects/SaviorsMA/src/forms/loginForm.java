@@ -44,6 +44,10 @@ import static forms.AddComment.id;
 import static forms.EventDetails.e;
 import static forms.ListComments.e;
 import java.io.IOException;
+import com.twilio.Twilio;
+import com.twilio.type.PhoneNumber;
+import java.io.IOException;
+import java.util.Random;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -3202,15 +3206,13 @@ public class loginForm extends Form {
                                 if (new ServiceProduit().getAllProduitsP().get(prod).getUser_id().equals(username.getText())) {
                                     countProd++;
                                 }
-
-                                if (countProd == 1) {
-                                    Dialog.show("Information", "Vous avez " + countProd + " produit en attente de réponse par l'administrateur.", new Command("OK"));
-                                }
-                                if (countProd > 0 && countProd != 1) {
-                                    Dialog.show("Information", "Vous avez " + countProd + " produits en attente de réponse par l'administrateur.", new Command("OK"));
-                                }
                             }
-
+                            if (countProd == 1) {
+                                Dialog.show("Information", "Vous avez " + countProd + " produit en attente de réponse par l'administrateur.", new Command("OK"));
+                            }
+                            if (countProd > 0 && countProd != 1) {
+                                Dialog.show("Information", "Vous avez " + countProd + " produits en attente de réponse par l'administrateur.", new Command("OK"));
+                            }
                             ListProduitsForm lp = new ListProduitsForm(hf, theme);
                             Button btnAddProduit = new Button(FontImage.MATERIAL_ADD_SHOPPING_CART);
                             Button btnAddCategorie = new Button(FontImage.MATERIAL_ADD_CHART);
@@ -3494,6 +3496,10 @@ public class loginForm extends Form {
         starRank.setPreferredSize(new Dimension(fullStar.getWidth() * 5, fullStar.getHeight()));
         return starRank;
     }
+    public static String codex;
+    public static final String ACCOUNT_SID = "AC131848a87fecf99be837175861639fc2";
+    public static final String AUTH_TOKEN = "037b167e9e6177aa1e92c55bab6c86c3";
+    String phonenumber = "+21693195113";
 
     public Container AddItem(Produit c, Resources theme, ListProduitsForm listProd) {
 
@@ -3513,6 +3519,8 @@ public class loginForm extends Form {
         Button supp = new Button(FontImage.MATERIAL_DELETE);
         Button detail = new Button(FontImage.MATERIAL_COMMENT);
         Button modif = new Button(FontImage.MATERIAL_UPDATE);
+
+        Button msg = new Button(FontImage.MATERIAL_SMARTPHONE);
         SpanLabel description = new SpanLabel("Description : " + c.getDescription());
         //SpanLabel image = new SpanLabel("L image est :" + c.getImage());
         SpanLabel categorie = new SpanLabel("Catégorie : " + c.getCategorie_nom());
@@ -3527,17 +3535,43 @@ public class loginForm extends Form {
         c2.add(prix);
         c2.add(usernameProd);
         c2.add(detail);
+
         UserSignup ul = new UserSignup(username.getText(), password.getText());
         //System.out.println(usernameProd.getText());
         if (new LoginService().getUser(ul).toString().contains("Fournisseur") && usernameProd.getText().toString().contains(username.getText())) {
             c2.add(modif);
             c2.add(supp);
         }
+        if (!new LoginService().getUser(ul).toString().contains("Fournisseur")) {
+            c2.add(msg);
+        }
         c1.add(c2);
         c1.getStyle().setBorder(Border.createLineBorder(2));
         c1.getStyle().setMargin(1, 1, 1, 1);
         c1.getStyle().setPadding(0, 0, 0, 0);
         c1.getStyle().setBgColor(0xffabab);
+        msg.addActionListener((evt) -> {
+
+            System.out.println("=========================");
+            String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+            StringBuilder salt = new StringBuilder();
+            Random rnd = new Random();
+            while (salt.length() < 5) { // length of the random string.
+                int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+                salt.append(SALTCHARS.charAt(index));
+            }
+            String saltStr = salt.toString();
+            Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
+            com.twilio.rest.api.v2010.account.Message messages = com.twilio.rest.api.v2010.account.Message.creator(new PhoneNumber(phonenumber),
+                    new PhoneNumber("+12563686010"), "je veux commander ce produit : " + c.getNom() + "," + saltStr).create();
+
+            codex = saltStr;
+            System.out.println("======================");
+            System.out.println("======================");
+            System.out.println("======================");
+            System.out.println(codex);
+            Dialog.show("succes", "sms envoyer au responsable du prduit merci d'avance *_* ", "ok", null);
+        });
 
         supp.addActionListener(evt -> {
             ServiceProduit es = new ServiceProduit();
@@ -3630,11 +3664,13 @@ public class loginForm extends Form {
                         Accordion accr = new Accordion();
                         String contenu = "";
                         Label ContentL = new Label();
+                        String usernameProd = "";
                         for (int i = 0; i < se.getAllCommentsCols().size(); i++) {
                             if (se.getAllCommentsCols().get(i).getProduitPending_id().equals(c.getNom())) {
+                                usernameProd = se.getAllCommentsCols().get(i).getUser_id();
                                 contenu = se.getAllCommentsCols().get(i).getContent();
                                 ContentL.setText(contenu);
-                                accr.addContent("Commentaires", new SpanLabel(ContentL.getText()));
+                                accr.addContent(usernameProd, new SpanLabel(ContentL.getText()));
                             }
                         }
 
@@ -3717,7 +3753,34 @@ public class loginForm extends Form {
                 ServiceProduit ser = new ServiceProduit();
                 TextField tfNom = new TextField(c.getNom());
                 TextField tfDescription = new TextField(c.getDescription());
-                TextField tfImage = new TextField(c.getImage());
+                //TextField tfImage = new TextField(c.getImage());
+
+                final String[] jobPic = new String[1];
+                Label jobIcon = new Label();
+                Button image = new Button(FontImage.MATERIAL_ADD_A_PHOTO);
+                final String[] image_name = {""};
+                final String[] filePath = {""};
+                fileName = "";
+                ImageViewer imvAdd = new ImageViewer();
+                image.addActionListener((ActionEvent actionEvent) -> {
+                    Display.getInstance().openGallery(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent ev) {
+
+                            filePath[0] = (String) ev.getSource();
+                            // System.out.println(ev.getSource());
+                            int fileNameIndex = filePath[0].lastIndexOf("/") + 1;
+                            fileName = filePath[0].substring(fileNameIndex);
+                            try {
+                                img2 = Image.createImage(FileSystemStorage.getInstance().openInputStream(filePath[0]));
+                                jobIcon.setIcon(img2);
+                                imvAdd.setImage(img2);
+                            } catch (Exception e) {
+                            }
+                        }
+                    }, Display.GALLERY_IMAGE);
+                });
+
                 TextField tfPrix = new TextField(c.getPrix() + "");
                 ComboBox<String> cx = new ComboBox();
                 for (int i = 0; i < new ServiceCategorie().getAllCategories().size(); i++) {
@@ -3736,16 +3799,26 @@ public class loginForm extends Form {
 
                 fod.add(tfNom);
                 fod.add(tfDescription);
-                fod.add(tfImage);
+                fod.add(image);
                 fod.add(tfPrix);
                 fod.add(cx);
                 fod.add(bo);
                 fod.add(btnAnnuler);
+                fod.add(imvAdd);
                 fod.show();
                 bo.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent evt) {
-                        ser.Modifierproduit(c.getId(), tfNom.getText(), tfImage.getText(), tfDescription.getText(), Integer.parseInt(tfPrix.getText()), cx.getSelectedItem());
+                        ser.Modifierproduit(c.getId(), tfNom.getText(), fileName, tfDescription.getText(), Integer.parseInt(tfPrix.getText()), cx.getSelectedItem());
+
+                        try {
+                            String pathToBeStored = "file://C:/wamp64/www/symfony/web/events/" + fileName;
+                            OutputStream os = FileSystemStorage.getInstance().openOutputStream(pathToBeStored);
+                            ImageIO.getImageIO().save(img2, os, ImageIO.FORMAT_PNG, 0.9f);
+                            os.close();
+                        } catch (Exception ex) {
+                            System.out.println(ex);
+                        }
                         ListProduitsForm h = new ListProduitsForm(listProd, theme);
                         listProd.show();
 
